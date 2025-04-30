@@ -14,9 +14,11 @@ namespace jjkweb.Function
         }
 
         [Function("TimerTrigger1")]
-        public void Run([TimerTrigger("0 */5 * * * *")] TimerInfo myTimer)
+        //[TimerTrigger("0 0 * * * *")] // Runs every day at midnight UTC
+        public void Run([TimerTrigger("0 0 * * * *")] TimerInfo myTimer)
         {
             _logger.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
+            _logger.LogWarning($"This is the JJK warning message");
             
             if (myTimer.ScheduleStatus is not null)
             {
