@@ -40,14 +40,14 @@ namespace JohnKauflinWeb.Function
             }
 
             await DeleteItems("GenvMetricPoint",4);
-            //wait DeleteItems("GenvImage",3);
-            //await DeleteItems("MetricPoint",3);
+            await DeleteItems("GenvImage",150);
+            await DeleteItems("MetricPoint",130);
         }
 
         private async Task DeleteItems(string containerId, int daysToKeep) {
             DateTime currDateTime = DateTime.Now;
             string maxYearMonthDay = currDateTime.AddDays(-daysToKeep).ToString("yyyyMMdd");
-            _logger.LogInformation($"# days to keep = {daysToKeep}, maxYearMonthDay = {maxYearMonthDay}");
+            _logger.LogInformation($"Purging {containerId}, # days to keep = {daysToKeep}, maxYearMonthDay = {maxYearMonthDay}");
             var queryText = $"SELECT c.id, c.PointDay FROM c WHERE c.PointDay < {maxYearMonthDay} ";
             //List<(string id, string partitionKey)> documents = new List<(string, string)>();
 
@@ -81,28 +81,8 @@ namespace JohnKauflinWeb.Function
                     cnt++;
                     id = item.id.ToString();
                     partitionKey = item.PointDay.Value;
-                    Console.WriteLine($"{cnt}, id: {item.id}, PointDay: {item.PointDay.Value} ");
+                    //_logger.LogInformation($"{cnt}, id: {item.id}, PointDay: {item.PointDay.Value} ");
                     await container.DeleteItemAsync<object>(id, new PartitionKey(partitionKey));
-                    /*                    
-                    try
-                    {
-                    }
-                    catch (Exception ex)
-                    {
-                        string exMessage = ex.Message;
-                        if (!exMessage.Contains("Not Found", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _logger.LogError(ex, ex.Message);
-                            throw;
-                        }
-                        else
-                        {
-                                // Resource Not Found
-                                //Console.WriteLine($"id: {item.id}, partitionKey: {partitionKey} - Not Found");
-                                Console.WriteLine($"*** id: {item.id}, partitionKey:  - Not Found");
-                            }
-                        }
-                    */
                 }
             }
             /*
@@ -123,7 +103,7 @@ namespace JohnKauflinWeb.Function
                 }
             });
             */
-            _logger.LogInformation($"{containerId}, Purge cnt = {cnt}");
+            _logger.LogInformation($"{containerId}, Purged cnt = {cnt}");
         }
 
     }
