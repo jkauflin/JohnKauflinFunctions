@@ -30,8 +30,9 @@ namespace JohnKauflinWeb.Function
         }
 
         [Function("PurgeDatabase")]
-        //[TimerTrigger("0 0 * * * *")] // Runs every day at midnight UT
-        public async Task Run([TimerTrigger("0 0 * * * *")] TimerInfo myTimer)
+        //[TimerTrigger("0 0 * * * *")] // Runs every hour
+        //[TimerTrigger("0 0 0 * * *")] // Runs every day at midnight UT
+        public async Task Run([TimerTrigger("0 0 0 * * *")] TimerInfo myTimer)
         {
             _logger.LogInformation($"PurgeDatabase Timer trigger function executed at: {DateTime.Now}");
             
