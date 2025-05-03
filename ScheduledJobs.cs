@@ -6,9 +6,8 @@ DESCRIPTION:  Class to run scheduled jobs via Azure Function TimerTrigger for
 --------------------------------------------------------------------------------
 Modification History
 2025-04-30 JJK  Initial version
+2025-05-03 JJK  Fixed error in dynamic object value get
 ================================================================================*/
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Cosmos;
@@ -25,7 +24,6 @@ namespace JohnKauflinWeb.Function
         {
             _logger = loggerFactory.CreateLogger<ScheduledJobs>();
             apiCosmosDbConnStr = Environment.GetEnvironmentVariable("API_COSMOS_DB_CONN_STR");
-
             databaseId = "jjkdb1";
         }
 
@@ -41,24 +39,26 @@ namespace JohnKauflinWeb.Function
                 _logger.LogInformation($"Next timer schedule at: {myTimer.ScheduleStatus.Next}");
             }
 
-            await DeleteItems("GenvMetricPoint",3);
-            await DeleteItems("GenvImage",3);
-            await DeleteItems("MetricPoint",3);
+            await DeleteItems("GenvMetricPoint",4);
+            //wait DeleteItems("GenvImage",3);
+            //await DeleteItems("MetricPoint",3);
         }
 
         private async Task DeleteItems(string containerId, int daysToKeep) {
             DateTime currDateTime = DateTime.Now;
             string maxYearMonthDay = currDateTime.AddDays(-daysToKeep).ToString("yyyyMMdd");
             _logger.LogInformation($"# days to keep = {daysToKeep}, maxYearMonthDay = {maxYearMonthDay}");
-            int cnt = 0;
             var queryText = $"SELECT c.id, c.PointDay FROM c WHERE c.PointDay < {maxYearMonthDay} ";
-            string id = "";
-            string partitionKey = "";
-            List<(string id, string partitionKey)> documents = new List<(string, string)>();
+            //List<(string id, string partitionKey)> documents = new List<(string, string)>();
 
             CosmosClient cosmosClient = new CosmosClient(apiCosmosDbConnStr); 
             Database db = cosmosClient.GetDatabase(databaseId);
             Container container = db.GetContainer(containerId);
+
+            int cnt = 0;
+            string id = "";
+            long partitionKey;
+            /*
             using FeedIterator<dynamic> feed = container.GetItemQueryIterator<dynamic>(queryText);
             while (feed.HasMoreResults)
             {
@@ -71,6 +71,41 @@ namespace JohnKauflinWeb.Function
                     documents.Add((id, partitionKey));
                 }
             }
+            */
+            var feed = container.GetItemQueryIterator<dynamic>(queryText);
+            while (feed.HasMoreResults)
+            {
+                var response = await feed.ReadNextAsync();
+                foreach (var item in response)
+                {
+                    cnt++;
+                    id = item.id.ToString();
+                    partitionKey = item.PointDay.Value;
+                    Console.WriteLine($"{cnt}, id: {item.id}, PointDay: {item.PointDay.Value} ");
+                    await container.DeleteItemAsync<object>(id, new PartitionKey(partitionKey));
+                    /*                    
+                    try
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        string exMessage = ex.Message;
+                        if (!exMessage.Contains("Not Found", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _logger.LogError(ex, ex.Message);
+                            throw;
+                        }
+                        else
+                        {
+                                // Resource Not Found
+                                //Console.WriteLine($"id: {item.id}, partitionKey: {partitionKey} - Not Found");
+                                Console.WriteLine($"*** id: {item.id}, partitionKey:  - Not Found");
+                            }
+                        }
+                    */
+                }
+            }
+            /*
             documents.ForEach(async doc => 
             {
                 //Console.WriteLine($"ID: {doc.id}, PartitionKey: {doc.partitionKey}");
@@ -87,7 +122,8 @@ namespace JohnKauflinWeb.Function
                     }
                 }
             });
-            _logger.LogWarning($"{containerId}, Purge cnt = {cnt}");
+            */
+            _logger.LogInformation($"{containerId}, Purge cnt = {cnt}");
         }
 
     }
