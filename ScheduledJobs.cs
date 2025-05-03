@@ -39,9 +39,9 @@ namespace JohnKauflinWeb.Function
                 _logger.LogInformation($"Next timer schedule at: {myTimer.ScheduleStatus.Next}");
             }
 
-            await DeleteItems("GenvMetricPoint",4);
-            await DeleteItems("GenvImage",110);
-            await DeleteItems("MetricPoint",110);
+            await DeleteItems("GenvMetricPoint",5);
+            await DeleteItems("GenvImage",5);
+            await DeleteItems("MetricPoint",5);
         }
 
         private async Task DeleteItems(string containerId, int daysToKeep) {
