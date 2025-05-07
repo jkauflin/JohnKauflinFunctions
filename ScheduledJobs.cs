@@ -41,7 +41,7 @@ namespace JohnKauflinWeb.Function
 
             await DeleteItems("GenvMetricPoint",5);
             await DeleteItems("GenvImage",5);
-            await DeleteItems("MetricPoint",5);
+            await DeleteItems("MetricPoint",110);
         }
 
         private async Task DeleteItems(string containerId, int daysToKeep) {
