@@ -41,16 +41,19 @@ namespace JohnKauflinWeb.Function
 
             await DeleteItems("GenvMetricPoint",5);
             await DeleteItems("GenvImage",5);
-            await DeleteItems("MetricPoint",110);
+            await DeleteItems("MetricPoint",109);
         }
 
         private async Task DeleteItems(string containerId, int daysToKeep) {
             DateTime currDateTime = DateTime.Now;
             string maxYearMonthDay = currDateTime.AddDays(-daysToKeep).ToString("yyyyMMdd");
-            _logger.LogInformation($"Purging {containerId}, # days to keep = {daysToKeep}, maxYearMonthDay = {maxYearMonthDay}");
+            //_logger.LogInformation($"Purging {containerId}, # days to keep = {daysToKeep}, maxYearMonthDay = {maxYearMonthDay}");
+            _logger.LogInformation($"Purging {containerId}, # days to keep = {daysToKeep} ");
             var queryText = $"SELECT c.id, c.PointDay FROM c WHERE c.PointDay < {maxYearMonthDay} ";
             //List<(string id, string partitionKey)> documents = new List<(string, string)>();
-
+            var queryDefinition = new QueryDefinition(
+                "SELECT c.id, c.PointDay FROM c WHERE c.PointDay < @maxYearMonthDay")
+                .WithParameter("@maxYearMonthDay", maxYearMonthDay);
             CosmosClient cosmosClient = new CosmosClient(apiCosmosDbConnStr); 
             Database db = cosmosClient.GetDatabase(databaseId);
             Container container = db.GetContainer(containerId);
@@ -72,7 +75,7 @@ namespace JohnKauflinWeb.Function
                 }
             }
             */
-            var feed = container.GetItemQueryIterator<dynamic>(queryText);
+            var feed = container.GetItemQueryIterator<dynamic>(queryDefinition);
             while (feed.HasMoreResults)
             {
                 var response = await feed.ReadNextAsync();
