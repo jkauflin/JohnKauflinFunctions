@@ -47,8 +47,7 @@ namespace JohnKauflinWeb.Function
         private async Task DeleteItems(string containerId, int daysToKeep) {
             DateTime currDateTime = DateTime.Now;
             int maxYearMonthDay = int.Parse(currDateTime.AddDays(-daysToKeep).ToString("yyyyMMdd"));
-            //int maxPurgeCnt = 3000;
-            int maxPurgeCnt = 100;
+            int maxPurgeCnt = 3000;
             _logger.LogInformation($"Purging {containerId}, # days to keep = {daysToKeep}, maxYearMonthDay = {maxYearMonthDay}, maxPurgeCnt = {maxPurgeCnt}");
             var queryDefinition = new QueryDefinition(
                 "SELECT c.id, c.PointDay FROM c WHERE c.PointDay < @maxYearMonthDay")
