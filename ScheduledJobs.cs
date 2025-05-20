@@ -39,21 +39,22 @@ namespace JohnKauflinWeb.Function
                 _logger.LogInformation($"Next timer schedule at: {myTimer.ScheduleStatus.Next}");
             }
 
-            await DeleteItems("GenvMetricPoint",10);
-            await DeleteItems("GenvImage",10);
-            //await DeleteItems("MetricPoint",109);
+            await DeleteItems("GenvMetricPoint",5);
+            await DeleteItems("GenvImage",5);
+            await DeleteItems("MetricPoint",90);
         }
 
         private async Task DeleteItems(string containerId, int daysToKeep) {
             DateTime currDateTime = DateTime.Now;
-            string maxYearMonthDay = currDateTime.AddDays(-daysToKeep).ToString("yyyyMMdd");
-            //_logger.LogInformation($"Purging {containerId}, # days to keep = {daysToKeep}, maxYearMonthDay = {maxYearMonthDay}");
-            _logger.LogInformation($"Purging {containerId}, # days to keep = {daysToKeep} ");
-            var queryText = $"SELECT c.id, c.PointDay FROM c WHERE c.PointDay < {maxYearMonthDay} ";
-            //List<(string id, string partitionKey)> documents = new List<(string, string)>();
+            int maxYearMonthDay = int.Parse(currDateTime.AddDays(-daysToKeep).ToString("yyyyMMdd"));
+            //int maxPurgeCnt = 3000;
+            int maxPurgeCnt = 100;
+            _logger.LogInformation($"Purging {containerId}, # days to keep = {daysToKeep}, maxYearMonthDay = {maxYearMonthDay}, maxPurgeCnt = {maxPurgeCnt}");
             var queryDefinition = new QueryDefinition(
                 "SELECT c.id, c.PointDay FROM c WHERE c.PointDay < @maxYearMonthDay")
                 .WithParameter("@maxYearMonthDay", maxYearMonthDay);
+            //var queryRequestOptions = new QueryRequestOptions { MaxItemCount = maxPurgeCnt };
+
             CosmosClient cosmosClient = new CosmosClient(apiCosmosDbConnStr); 
             Database db = cosmosClient.GetDatabase(databaseId);
             Container container = db.GetContainer(containerId);
@@ -61,51 +62,25 @@ namespace JohnKauflinWeb.Function
             int cnt = 0;
             string id = "";
             long partitionKey;
-            /*
-            using FeedIterator<dynamic> feed = container.GetItemQueryIterator<dynamic>(queryText);
-            while (feed.HasMoreResults)
-            {
-                var response = await feed.ReadNextAsync();
-                foreach (var item in response)
-                {
-                    cnt++;
-                    id = item.id.ToString();
-                    partitionKey = item.PointDay.ToString();
-                    documents.Add((id, partitionKey));
-                }
-            }
-            */
             var feed = container.GetItemQueryIterator<dynamic>(queryDefinition);
+            //    requestOptions: queryRequestOptions
+            //);
+
             while (feed.HasMoreResults)
             {
                 var response = await feed.ReadNextAsync();
                 foreach (var item in response)
                 {
-                    cnt++;
                     id = item.id.ToString();
                     partitionKey = item.PointDay.Value;
                     //_logger.LogInformation($"{cnt}, id: {item.id}, PointDay: {item.PointDay.Value} ");
-                    await container.DeleteItemAsync<object>(id, new PartitionKey(partitionKey));
-                }
-            }
-            /*
-            documents.ForEach(async doc => 
-            {
-                //Console.WriteLine($"ID: {doc.id}, PartitionKey: {doc.partitionKey}");
-                try {
-                    await container.DeleteItemAsync<object>(doc.id, new PartitionKey(doc.partitionKey));
-                } catch (Exception ex) {
-                    string exMessage = ex.Message;
-                    if (!exMessage.Contains("Not Found", StringComparison.OrdinalIgnoreCase)) {
-                        _logger.LogError(ex, ex.Message);
-                        throw;
-                    } else {
-                        // Resource Not Found
-                        _logger.LogWarning($"ID: {doc.id}, PartitionKey: {doc.partitionKey} Not Found");
+                    if (cnt < maxPurgeCnt)
+                    {
+                        await container.DeleteItemAsync<object>(id, new PartitionKey(partitionKey));
+                        cnt++;
                     }
                 }
-            });
-            */
+            }
             _logger.LogInformation($"{containerId}, Purged cnt = {cnt}");
         }
 
