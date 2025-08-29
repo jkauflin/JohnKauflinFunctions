@@ -1,5 +1,5 @@
 {
   "devDependencies": {
-    "azure-functions-core-tools": "^4.0.7030"
+    "azure-functions-core-tools": "^4.2.2"
   }
 }
